@@ -3,8 +3,6 @@ import yt_dlp
 from pipeline import check_transcript, check_video, check_link
 from pathlib import Path
 
-#for tomorrow: https://www.instagram.com/reels/DYcARZXt8ly/
-
 st.title("ShortCheck - Check Short-form Videos for Misinformation")
 st.caption("ShortCheck checks the factual claims in a video against web sources. "
            "It is not a judgement of the video's overall message.")
@@ -12,6 +10,8 @@ st.caption("ShortCheck checks the factual claims in a video against web sources.
 mode = st.radio("How do you want to upload a video?",
                 ["Upload a file", "Paste a link", "Paste a transcript"],
                 horizontal=True)
+
+context = st.text_area("Recommended: any context about the video (who, where, when)")
 
 if mode == "Upload a file":
     uploaded = st.file_uploader("Upload a reel", type=["mp4"])
@@ -30,16 +30,19 @@ if st.button("Submit"):
                     with open("upload.mp4", "wb") as f:
                         f.write(uploaded.getbuffer())
                     try:
-                        st.session_state["verdicts"] = check_video("upload.mp4")
+                        st.session_state["verdicts"] = check_video("upload.mp4", context)
                     finally:
                         Path("upload.mp4").unlink(missing_ok = True)
                 elif mode == "Paste a link":
-                    st.session_state["verdicts"] = check_link(uploaded)
+                    st.session_state["verdicts"] = check_link(uploaded, context)
                 else:
-                    st.session_state["verdicts"] = check_transcript(uploaded)
+                    st.session_state["verdicts"] = check_transcript(uploaded, context=context)
         except yt_dlp.utils.DownloadError:
             st.error("Couldn't download this link. The platform may be blocking it. "
                      "Please download the video and upload the file instead.")
+        except Exception:
+            st.error("Something went wrong while checking this video. Please try again, "
+                     "or try pasting the transcript instead.")
 
 VERDICT_BOXES = {
     "True": st.success,

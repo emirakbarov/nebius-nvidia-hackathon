@@ -1,28 +1,30 @@
-from tavily import TavilyClient
 import os
 from dotenv import load_dotenv
+from tavily import TavilyClient
 
 load_dotenv()
 
-# for tomorrow: https://www.instagram.com/reels/DYcARZXt8ly/
+EXCLUDED_DOMAINS = [
+    "reddit.com", "quora.com", "facebook.com", "instagram.com", "tiktok.com",
+    "pinterest.com", "youtube.com", "linkedin.com", "x.com", "twitter.com",
+]
+MAX_QUERY_LENGTH = 400
 
-EXCLUDED_DOMAINS= ["reddit.com", "quora.com", "facebook.com", "instagram.com", "tiktok.com", "pinterest.com", "youtube.com"]
+tavily_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
 
-tavily_client = TavilyClient(api_key=os.environ['TAVILY_API_KEY'])
 
-def find_evidence(claims):
-    evidence = {}
-    for claim in claims:
-        response = tavily_client.search(
-            query=claim,
-            search_depth="basic",
-            exclude_domains= EXCLUDED_DOMAINS,
-            max_results=5,
-            chunks_per_source=3
-        )
-        evidence[claim] = response["results"]
+def search_claim(claim, video_context=""):
+    # The video's context is added to the query so the search finds the right event, place and time.
+    query = f"{claim} {video_context}".strip()[:MAX_QUERY_LENGTH]
+    response = tavily_client.search(
+        query=query,
+        search_depth="basic",
+        exclude_domains=EXCLUDED_DOMAINS,
+        max_results=5,
+        chunks_per_source=3,
+    )
+    return response["results"]
 
-    return evidence
 
 def format_evidence(results):
     if not results:
@@ -42,4 +44,3 @@ def format_evidence(results):
         sources.append(source)
 
     return "\n\n".join(sources)
-    
